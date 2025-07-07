@@ -27,9 +27,9 @@ export const DataProvider = ({ children }) => {
   const initializeData = async () => {
     try {
       setLoading(true);
-      console.log('Initializing data...');
+      console.log('Initializing data from database...');
       
-      // Load data from Supabase
+      // Load all data from Supabase
       await Promise.all([
         loadUsers(),
         loadSubjects(),
@@ -38,99 +38,12 @@ export const DataProvider = ({ children }) => {
         loadCurrencySettings()
       ]);
       
-      console.log('Data initialized successfully');
+      console.log('Data initialized successfully from database');
     } catch (error) {
       console.error('Error initializing data:', error);
-      // Fallback to default data
-      setDefaultData();
     } finally {
       setLoading(false);
     }
-  };
-
-  const setDefaultData = () => {
-    console.log('Setting default data...');
-    
-    // Set default users
-    setUsers([
-      { 
-        id: 'admin-1', 
-        name: 'Administrator', 
-        username: 'admin@gmail.com', 
-        email: 'admin@gmail.com',
-        password_hash: '1234', 
-        role: 'admin', 
-        status: 'active',
-        permissions: {
-          canViewStudents: true,
-          canEditStudents: true,
-          canDeleteStudents: true,
-          canManageSessions: true,
-          canViewReports: true,
-          canManageUsers: true,
-        }
-      },
-      { 
-        id: 'tutor-1', 
-        name: 'Wazid', 
-        username: 'wazid', 
-        email: 'wazid@dgtutor.com',
-        password_hash: 'tutor123', 
-        role: 'tutor', 
-        status: 'active',
-        permissions: {
-          canViewStudents: true,
-          canEditStudents: false,
-          canDeleteStudents: false,
-          canManageSessions: true,
-          canViewReports: false,
-          canManageUsers: false,
-        }
-      },
-      { 
-        id: 'tutor-2', 
-        name: 'Rahman', 
-        username: 'rahman', 
-        email: 'rahman@dgtutor.com',
-        password_hash: 'tutor123', 
-        role: 'tutor', 
-        status: 'active',
-        permissions: {
-          canViewStudents: true,
-          canEditStudents: false,
-          canDeleteStudents: false,
-          canManageSessions: true,
-          canViewReports: false,
-          canManageUsers: false,
-        }
-      },
-      { 
-        id: 'parent-1', 
-        name: 'John Smith', 
-        username: 'johnsmith', 
-        email: 'john.smith@email.com',
-        password_hash: 'parent123', 
-        role: 'parent', 
-        status: 'active',
-        permissions: {
-          canViewStudents: true,
-          canEditStudents: false,
-          canDeleteStudents: false,
-          canManageSessions: false,
-          canViewReports: true,
-          canManageUsers: false,
-        }
-      }
-    ]);
-
-    // Set default subjects
-    setSubjects([
-      'Math', 'Science', 'English', 'AP Subjects', 'College Subjects',
-      'Physics', 'Chemistry', 'Biology', 'History', 'Computer Science'
-    ]);
-
-    // Set default currency
-    setCurrency('USD');
   };
 
   const loadUsers = async () => {
@@ -141,12 +54,12 @@ export const DataProvider = ({ children }) => {
         .order('created_at', { ascending: true });
 
       if (error) throw error;
-      if (data && data.length > 0) {
-        setUsers(data);
-        console.log('Users loaded from database:', data.length);
-      }
+      
+      setUsers(data || []);
+      console.log('Users loaded from database:', data?.length || 0);
     } catch (error) {
       console.error('Error loading users:', error);
+      setUsers([]);
     }
   };
 
@@ -158,12 +71,12 @@ export const DataProvider = ({ children }) => {
         .order('name');
 
       if (error) throw error;
-      if (data && data.length > 0) {
-        setSubjects(data.map(subject => subject.name));
-        console.log('Subjects loaded from database:', data.length);
-      }
+      
+      setSubjects(data?.map(subject => subject.name) || []);
+      console.log('Subjects loaded from database:', data?.length || 0);
     } catch (error) {
       console.error('Error loading subjects:', error);
+      setSubjects([]);
     }
   };
 
@@ -180,22 +93,22 @@ export const DataProvider = ({ children }) => {
 
       if (error) throw error;
       
-      if (data) {
-        const formattedStudents = data.map(student => ({
-          ...student,
-          subject: student.subject?.name || '',
-          tutor: student.tutor?.name || '',
-          studentName: student.student_name,
-          parentName: student.parent_name,
-          parentUsername: student.parent_username,
-          feePerSession: student.fee_per_session,
-          lastPaid: student.last_paid
-        }));
-        setStudents(formattedStudents);
-        console.log('Students loaded from database:', formattedStudents.length);
-      }
+      const formattedStudents = data?.map(student => ({
+        ...student,
+        subject: student.subject?.name || '',
+        tutor: student.tutor?.name || '',
+        studentName: student.student_name,
+        parentName: student.parent_name,
+        parentUsername: student.parent_username,
+        feePerSession: student.fee_per_session,
+        lastPaid: student.last_paid
+      })) || [];
+      
+      setStudents(formattedStudents);
+      console.log('Students loaded from database:', formattedStudents.length);
     } catch (error) {
       console.error('Error loading students:', error);
+      setStudents([]);
     }
   };
 
@@ -208,27 +121,27 @@ export const DataProvider = ({ children }) => {
 
       if (error) throw error;
 
-      if (data) {
-        const groupedSessions = {};
-        data.forEach(session => {
-          if (!groupedSessions[session.student_id]) {
-            groupedSessions[session.student_id] = {};
-          }
-          if (!groupedSessions[session.student_id][session.month_name]) {
-            groupedSessions[session.student_id][session.month_name] = [];
-          }
-          
-          groupedSessions[session.student_id][session.month_name].push(
-            session.is_paid 
-              ? { date: session.session_date, paid: true }
-              : session.session_date
-          );
-        });
-        setSessions(groupedSessions);
-        console.log('Sessions loaded from database:', data.length);
-      }
+      const groupedSessions = {};
+      data?.forEach(session => {
+        if (!groupedSessions[session.student_id]) {
+          groupedSessions[session.student_id] = {};
+        }
+        if (!groupedSessions[session.student_id][session.month_name]) {
+          groupedSessions[session.student_id][session.month_name] = [];
+        }
+        
+        groupedSessions[session.student_id][session.month_name].push(
+          session.is_paid 
+            ? { date: session.session_date, paid: true }
+            : session.session_date
+        );
+      });
+      
+      setSessions(groupedSessions);
+      console.log('Sessions loaded from database:', data?.length || 0);
     } catch (error) {
       console.error('Error loading sessions:', error);
+      setSessions({});
     }
   };
 
@@ -240,12 +153,12 @@ export const DataProvider = ({ children }) => {
         .single();
 
       if (error) throw error;
-      if (data) {
-        setCurrency(data.currency_code);
-        console.log('Currency loaded from database:', data.currency_code);
-      }
+      
+      setCurrency(data?.currency_code || 'USD');
+      console.log('Currency loaded from database:', data?.currency_code || 'USD');
     } catch (error) {
       console.error('Error loading currency settings:', error);
+      setCurrency('USD');
     }
   };
 
@@ -280,9 +193,10 @@ export const DataProvider = ({ children }) => {
 
       if (error) throw error;
       setCurrency(newCurrency);
+      console.log('Currency updated in database:', newCurrency);
     } catch (error) {
       console.error('Error updating currency:', error);
-      setCurrency(newCurrency);
+      throw error;
     }
   };
 
@@ -338,14 +252,11 @@ export const DataProvider = ({ children }) => {
       };
 
       setStudents(prev => [formattedStudent, ...prev]);
+      console.log('Student added to database:', formattedStudent.studentName);
+      return formattedStudent;
     } catch (error) {
       console.error('Error adding student:', error);
-      const newStudent = {
-        ...studentData,
-        id: Date.now().toString(),
-        createdAt: new Date().toISOString()
-      };
-      setStudents(prev => [...prev, newStudent]);
+      throw error;
     }
   };
 
@@ -386,11 +297,11 @@ export const DataProvider = ({ children }) => {
       setStudents(prev => prev.map(student => 
         student.id === id ? { ...student, ...updatedData } : student
       ));
+      console.log('Student updated in database:', updatedData.studentName);
+      return { ...updatedData, id };
     } catch (error) {
       console.error('Error updating student:', error);
-      setStudents(prev => prev.map(student => 
-        student.id === id ? { ...student, ...updatedData } : student
-      ));
+      throw error;
     }
   };
 
@@ -409,26 +320,25 @@ export const DataProvider = ({ children }) => {
         delete updated[id];
         return updated;
       });
+      console.log('Student deleted from database:', id);
+      return id;
     } catch (error) {
       console.error('Error deleting student:', error);
-      setStudents(prev => prev.filter(student => student.id !== id));
-      setSessions(prev => {
-        const updated = { ...prev };
-        delete updated[id];
-        return updated;
-      });
+      throw error;
     }
   };
 
   // Session functions
   const updateSessions = async (studentId, month, dates) => {
     try {
+      // Delete existing sessions for this student and month
       await supabase
         .from('sessions_dgtutor_2024')
         .delete()
         .eq('student_id', studentId)
         .eq('month_name', month);
 
+      // Insert new sessions
       const sessionInserts = dates.map(date => {
         const isObject = typeof date === 'object';
         return {
@@ -454,15 +364,11 @@ export const DataProvider = ({ children }) => {
           [month]: dates
         }
       }));
+      console.log('Sessions updated in database:', studentId, month, dates.length);
+      return { studentId, month, dates };
     } catch (error) {
       console.error('Error updating sessions:', error);
-      setSessions(prev => ({
-        ...prev,
-        [studentId]: {
-          ...prev[studentId],
-          [month]: dates
-        }
-      }));
+      throw error;
     }
   };
 
@@ -488,54 +394,109 @@ export const DataProvider = ({ children }) => {
           )
         }
       }));
+      
+      // If marking as paid, also update the student's last_paid date
+      if (isPaid) {
+        const studentToUpdate = students.find(s => s.id === studentId);
+        if (studentToUpdate) {
+          await supabase
+            .from('students_dgtutor_2024')
+            .update({ last_paid: date })
+            .eq('id', studentId);
+            
+          setStudents(prev => prev.map(student => 
+            student.id === studentId ? { ...student, lastPaid: date } : student
+          ));
+        }
+      }
+      
+      console.log('Session payment status updated:', studentId, month, date, isPaid);
+      return { studentId, month, date, isPaid };
     } catch (error) {
       console.error('Error marking session as paid:', error);
-      setSessions(prev => ({
-        ...prev,
-        [studentId]: {
-          ...prev[studentId],
-          [month]: (prev[studentId]?.[month] || []).map(sessionDate =>
-            sessionDate === date || (typeof sessionDate === 'object' && sessionDate.date === date)
-              ? { date: typeof sessionDate === 'string' ? sessionDate : sessionDate.date, paid: isPaid }
-              : sessionDate
-          )
-        }
-      }));
+      throw error;
     }
   };
 
   // User management functions
   const addUser = async (userData) => {
     try {
+      // First, check if username already exists
+      const { data: existingUser, error: checkError } = await supabase
+        .from('users_dgtutor_2024')
+        .select('id')
+        .eq('username', userData.username.toLowerCase())
+        .single();
+        
+      if (existingUser) {
+        throw new Error(`Username "${userData.username}" is already taken. Please choose another username.`);
+      }
+      
+      if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "no rows returned" which is what we want
+        throw checkError;
+      }
+      
+      const newUserData = {
+        name: userData.name,
+        username: userData.username.toLowerCase(),
+        email: userData.email || null,
+        password_hash: userData.password,
+        role: userData.role,
+        status: userData.status,
+        permissions: userData.permissions || {}
+      };
+      
       const { data, error } = await supabase
         .from('users_dgtutor_2024')
-        .insert([{
-          ...userData,
-          password_hash: userData.password
-        }])
+        .insert([newUserData])
         .select()
         .single();
 
       if (error) throw error;
 
       setUsers(prev => [...prev, data]);
+      console.log('User added to database:', data.name);
+      return data;
     } catch (error) {
       console.error('Error adding user:', error);
-      const newUser = {
-        ...userData,
-        id: Date.now().toString(),
-        created_at: new Date().toISOString()
-      };
-      setUsers(prev => [...prev, newUser]);
+      throw error;
     }
   };
 
   const updateUser = async (id, updatedUser) => {
     try {
-      const updateData = { ...updatedUser };
-      if (updateData.password) {
-        updateData.password_hash = updateData.password;
-        delete updateData.password;
+      // Check if username is being changed and if it's already taken
+      if (updatedUser.username) {
+        const currentUser = users.find(u => u.id === id);
+        
+        if (currentUser && currentUser.username !== updatedUser.username.toLowerCase()) {
+          const { data: existingUser, error: checkError } = await supabase
+            .from('users_dgtutor_2024')
+            .select('id')
+            .eq('username', updatedUser.username.toLowerCase())
+            .single();
+            
+          if (existingUser) {
+            throw new Error(`Username "${updatedUser.username}" is already taken. Please choose another username.`);
+          }
+          
+          if (checkError && checkError.code !== 'PGRST116') { // PGRST116 is "no rows returned" which is what we want
+            throw checkError;
+          }
+        }
+      }
+      
+      const updateData = { 
+        name: updatedUser.name,
+        username: updatedUser.username?.toLowerCase(),
+        email: updatedUser.email || null,
+        role: updatedUser.role,
+        status: updatedUser.status,
+        permissions: updatedUser.permissions || {}
+      };
+      
+      if (updatedUser.password) {
+        updateData.password_hash = updatedUser.password;
       }
 
       const { error } = await supabase
@@ -546,18 +507,29 @@ export const DataProvider = ({ children }) => {
       if (error) throw error;
 
       setUsers(prev => prev.map(user => 
-        user.id === id ? { ...user, ...updatedUser } : user
+        user.id === id ? { ...user, ...updatedUser, username: updatedUser.username?.toLowerCase() } : user
       ));
+      console.log('User updated in database:', updatedUser.name);
+      return { ...updatedUser, id };
     } catch (error) {
       console.error('Error updating user:', error);
-      setUsers(prev => prev.map(user => 
-        user.id === id ? { ...user, ...updatedUser } : user
-      ));
+      throw error;
     }
   };
 
   const deleteUser = async (id) => {
     try {
+      // First check if this user is assigned as a tutor to any students
+      const assignedStudents = students.filter(student => {
+        const tutor = users.find(u => u.id === id);
+        return student.tutor === tutor?.name;
+      });
+      
+      if (assignedStudents.length > 0) {
+        const studentNames = assignedStudents.map(s => s.studentName).join(', ');
+        throw new Error(`Cannot delete this user because they are assigned as a tutor to: ${studentNames}`);
+      }
+
       const { error } = await supabase
         .from('users_dgtutor_2024')
         .delete()
@@ -566,32 +538,58 @@ export const DataProvider = ({ children }) => {
       if (error) throw error;
 
       setUsers(prev => prev.filter(user => user.id !== id));
+      console.log('User deleted from database:', id);
+      return id;
     } catch (error) {
       console.error('Error deleting user:', error);
-      setUsers(prev => prev.filter(user => user.id !== id));
+      throw error;
     }
   };
 
   // Subject management functions
   const addSubject = async (subject) => {
     try {
-      const { error } = await supabase
+      // Check if subject already exists
+      const { data: existingSubject, error: checkError } = await supabase
         .from('subjects_dgtutor_2024')
-        .insert([{ name: subject }]);
+        .select('id')
+        .eq('name', subject)
+        .single();
+        
+      if (existingSubject) {
+        throw new Error(`Subject "${subject}" already exists.`);
+      }
+      
+      if (checkError && checkError.code !== 'PGRST116') {
+        throw checkError;
+      }
+      
+      const { data, error } = await supabase
+        .from('subjects_dgtutor_2024')
+        .insert([{ name: subject }])
+        .select()
+        .single();
 
       if (error) throw error;
 
       setSubjects(prev => [...prev, subject].sort());
+      console.log('Subject added to database:', subject);
+      return data;
     } catch (error) {
       console.error('Error adding subject:', error);
-      if (!subjects.includes(subject)) {
-        setSubjects(prev => [...prev, subject].sort());
-      }
+      throw error;
     }
   };
 
   const deleteSubject = async (subject) => {
     try {
+      // Check if subject is used by any students
+      const studentsWithSubject = students.filter(s => s.subject === subject);
+      if (studentsWithSubject.length > 0) {
+        const studentNames = studentsWithSubject.map(s => s.studentName).join(', ');
+        throw new Error(`Cannot delete "${subject}" because it's assigned to: ${studentNames}`);
+      }
+
       const { error } = await supabase
         .from('subjects_dgtutor_2024')
         .delete()
@@ -600,14 +598,33 @@ export const DataProvider = ({ children }) => {
       if (error) throw error;
 
       setSubjects(prev => prev.filter(s => s !== subject));
+      console.log('Subject deleted from database:', subject);
+      return subject;
     } catch (error) {
       console.error('Error deleting subject:', error);
-      setSubjects(prev => prev.filter(s => s !== subject));
+      throw error;
     }
   };
 
   const updateSubject = async (oldSubject, newSubject) => {
     try {
+      // Check if new subject name already exists
+      if (oldSubject !== newSubject) {
+        const { data: existingSubject, error: checkError } = await supabase
+          .from('subjects_dgtutor_2024')
+          .select('id')
+          .eq('name', newSubject)
+          .single();
+          
+        if (existingSubject) {
+          throw new Error(`Subject "${newSubject}" already exists.`);
+        }
+        
+        if (checkError && checkError.code !== 'PGRST116') {
+          throw checkError;
+        }
+      }
+      
       const { error } = await supabase
         .from('subjects_dgtutor_2024')
         .update({ name: newSubject })
@@ -616,15 +633,18 @@ export const DataProvider = ({ children }) => {
       if (error) throw error;
 
       setSubjects(prev => prev.map(s => s === oldSubject ? newSubject : s).sort());
-      setStudents(prev => prev.map(student => 
-        student.subject === oldSubject ? { ...student, subject: newSubject } : student
-      ));
+      
+      // Update subject name in students
+      const studentsToUpdate = students.filter(student => student.subject === oldSubject);
+      for (const student of studentsToUpdate) {
+        await updateStudent(student.id, { ...student, subject: newSubject });
+      }
+      
+      console.log('Subject updated in database:', oldSubject, '->', newSubject);
+      return { oldSubject, newSubject };
     } catch (error) {
       console.error('Error updating subject:', error);
-      setSubjects(prev => prev.map(s => s === oldSubject ? newSubject : s).sort());
-      setStudents(prev => prev.map(student => 
-        student.subject === oldSubject ? { ...student, subject: newSubject } : student
-      ));
+      throw error;
     }
   };
 

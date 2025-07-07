@@ -6,7 +6,7 @@ import UserForm from './UserForm';
 import SafeIcon from '../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
-const { FiPlus, FiEdit, FiTrash2, FiUser, FiShield, FiUsers, FiCopy, FiEye, FiEyeOff } = FiIcons;
+const { FiPlus, FiEdit, FiTrash2, FiUser, FiShield, FiUsers, FiCopy, FiEye, FiEyeOff, FiAlertCircle } = FiIcons;
 
 const UserManagement = () => {
   const { user } = useAuth();
@@ -14,8 +14,10 @@ const UserManagement = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
   const [showPasswords, setShowPasswords] = useState({});
+  const [error, setError] = useState('');
 
   const handleEditUser = (userToEdit) => {
+    setError('');
     setEditingUser(userToEdit);
     setShowAddForm(true);
   };
@@ -25,23 +27,31 @@ const UserManagement = () => {
     setEditingUser(null);
   };
 
-  const handleDeleteUser = (userId) => {
+  const handleDeleteUser = async (userId) => {
     if (userId === user.id) {
       alert("You cannot delete your own account!");
       return;
     }
+
     if (window.confirm('Are you sure you want to delete this user?')) {
-      deleteUser(userId);
+      try {
+        setError('');
+        await deleteUser(userId);
+      } catch (error) {
+        setError(error.message || 'Failed to delete user');
+      }
     }
   };
 
   const handleCopyCredentials = (userItem) => {
     const credentials = `Username: ${userItem.username}\nPassword: ${userItem.password || 'Not visible'}`;
-    navigator.clipboard.writeText(credentials).then(() => {
-      alert('Credentials copied to clipboard!');
-    }).catch(() => {
-      alert('Failed to copy credentials');
-    });
+    navigator.clipboard.writeText(credentials)
+      .then(() => {
+        alert('Credentials copied to clipboard!');
+      })
+      .catch(() => {
+        alert('Failed to copy credentials');
+      });
   };
 
   const togglePasswordVisibility = (userId) => {
@@ -174,13 +184,29 @@ const UserManagement = () => {
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          onClick={() => setShowAddForm(true)}
+          onClick={() => {
+            setError('');
+            setEditingUser(null);
+            setShowAddForm(true);
+          }}
           className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
         >
           <SafeIcon icon={FiPlus} />
           Add New User
         </motion.button>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <motion.div 
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg flex items-start gap-2"
+        >
+          <SafeIcon icon={FiAlertCircle} className="mt-0.5 flex-shrink-0" />
+          <div>{error}</div>
+        </motion.div>
+      )}
 
       {/* Users Table */}
       <div className="bg-white rounded-xl shadow-sm overflow-hidden">
@@ -240,18 +266,17 @@ const UserManagement = () => {
                       </div>
                     </div>
                   </td>
-
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
                         <span className="text-xs text-gray-500">Username:</span>
                         <code className="text-xs bg-gray-100 px-2 py-1 rounded">{userItem.username}</code>
                       </div>
-                      {userItem.password && (
+                      {userItem.password_hash && (
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-gray-500">Password:</span>
                           <code className="text-xs bg-gray-100 px-2 py-1 rounded">
-                            {showPasswords[userItem.id] ? userItem.password : '••••••••'}
+                            {showPasswords[userItem.id] ? userItem.password_hash : '••••••••'}
                           </code>
                           <button
                             onClick={() => togglePasswordVisibility(userItem.id)}
@@ -263,7 +288,7 @@ const UserManagement = () => {
                         </div>
                       )}
                       <button
-                        onClick={() => handleCopyCredentials(userItem)}
+                        onClick={() => handleCopyCredentials({...userItem, password: showPasswords[userItem.id] ? userItem.password_hash : null})}
                         className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
                         title="Copy credentials"
                       >
@@ -272,27 +297,19 @@ const UserManagement = () => {
                       </button>
                     </div>
                   </td>
-
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(userItem.role)}`}>
                       {userItem.role?.charAt(0).toUpperCase() + userItem.role?.slice(1)}
                     </span>
                   </td>
-
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      userItem.status === 'active' 
-                        ? 'bg-green-100 text-green-800' 
-                        : 'bg-red-100 text-red-800'
-                    }`}>
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${userItem.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
                       {userItem.status?.charAt(0).toUpperCase() + userItem.status?.slice(1)}
                     </span>
                   </td>
-
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {userItem.createdAt ? new Date(userItem.createdAt).toLocaleDateString() : 'N/A'}
+                    {userItem.created_at ? new Date(userItem.created_at).toLocaleDateString() : 'N/A'}
                   </td>
-
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center gap-2">
                       <button
@@ -322,10 +339,7 @@ const UserManagement = () => {
 
       {/* Add/Edit User Modal */}
       {showAddForm && (
-        <UserForm 
-          user={editingUser}
-          onClose={handleCloseForm}
-        />
+        <UserForm user={editingUser} onClose={handleCloseForm} />
       )}
     </div>
   );

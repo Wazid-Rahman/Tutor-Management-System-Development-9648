@@ -25,6 +25,8 @@ const UserForm = ({ user, onClose }) => {
       canManageUsers: false,
     }
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState('');
 
   const roles = [
     { value: 'admin', label: 'Administrator', description: 'Full system access' },
@@ -48,23 +50,38 @@ const UserForm = ({ user, onClose }) => {
     }
   }, [user]);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    const userData = {
-      ...formData,
-      permissions: getPermissionsByRole(formData.role, formData.permissions)
-    };
+    setIsSubmitting(true);
+    setError('');
 
-    if (user) {
-      // Don't update password if it's empty
-      if (!userData.password) {
-        delete userData.password;
+    try {
+      const userData = {
+        ...formData,
+        permissions: getPermissionsByRole(formData.role, formData.permissions)
+      };
+
+      if (user) {
+        // Don't update password if it's empty
+        if (!userData.password) {
+          delete userData.password;
+        }
+        await updateUser(user.id, userData);
+      } else {
+        if (!userData.password) {
+          setError('Password is required for new users');
+          setIsSubmitting(false);
+          return;
+        }
+        await addUser(userData);
       }
-      updateUser(user.id, userData);
-    } else {
-      addUser(userData);
+      onClose();
+    } catch (error) {
+      console.error('Error saving user:', error);
+      setError(error.message || 'Failed to save user. Please try again.');
+    } finally {
+      setIsSubmitting(false);
     }
-    onClose();
   };
 
   const handleChange = (e) => {
@@ -156,6 +173,12 @@ const UserForm = ({ user, onClose }) => {
         </div>
 
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+          
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -360,10 +383,11 @@ const UserForm = ({ user, onClose }) => {
               whileHover={{ scale: 1.02 }}
               whileTap={{ scale: 0.98 }}
               type="submit"
-              className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2"
+              disabled={isSubmitting}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg font-medium hover:bg-blue-700 transition-colors flex items-center gap-2 disabled:opacity-50"
             >
               <SafeIcon icon={FiSave} />
-              {user ? 'Update User' : 'Create User'}
+              {isSubmitting ? 'Saving...' : (user ? 'Update User' : 'Create User')}
             </motion.button>
           </div>
         </form>
