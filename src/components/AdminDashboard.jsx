@@ -14,7 +14,7 @@ const { FiPlus, FiUsers, FiBarChart3, FiSettings, FiBook, FiDollarSign } = FiIco
 
 const AdminDashboard = () => {
   const { user } = useAuth();
-  const { students, users, getTotalSessions, getPaidSessions } = useData();
+  const { students, users, getTotalSessions, getPaidSessions, formatCurrency } = useData();
   const [activeTab, setActiveTab] = useState('students');
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingStudent, setEditingStudent] = useState(null);
@@ -142,7 +142,7 @@ const AdminDashboard = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-emerald-600">${stats.totalRevenue.toFixed(2)}</p>
+                <p className="text-2xl font-bold text-emerald-600">{formatCurrency(stats.totalRevenue)}</p>
               </div>
               <div className="bg-emerald-100 p-3 rounded-full">
                 <SafeIcon icon={FiDollarSign} className="text-lg text-emerald-600" />

@@ -29,6 +29,7 @@ const UserForm = ({ user, onClose }) => {
   const roles = [
     { value: 'admin', label: 'Administrator', description: 'Full system access' },
     { value: 'tutor', label: 'Tutor', description: 'Manage assigned students and sessions' },
+    { value: 'parent', label: 'Parent', description: 'View children\'s progress and sessions' },
     { value: 'viewer', label: 'Viewer', description: 'Read-only access' }
   ];
 
@@ -49,7 +50,6 @@ const UserForm = ({ user, onClose }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    
     const userData = {
       ...formData,
       permissions: getPermissionsByRole(formData.role, formData.permissions)
@@ -64,7 +64,6 @@ const UserForm = ({ user, onClose }) => {
     } else {
       addUser(userData);
     }
-    
     onClose();
   };
 
@@ -113,6 +112,14 @@ const UserForm = ({ user, onClose }) => {
         canDeleteStudents: false,
         canManageSessions: true,
         canViewReports: false,
+        canManageUsers: false,
+      },
+      parent: {
+        canViewStudents: true,
+        canEditStudents: false,
+        canDeleteStudents: false,
+        canManageSessions: false,
+        canViewReports: true,
         canManageUsers: false,
       },
       viewer: {

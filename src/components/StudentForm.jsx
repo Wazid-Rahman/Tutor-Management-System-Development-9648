@@ -7,9 +7,10 @@ import * as FiIcons from 'react-icons/fi';
 const { FiX, FiSave } = FiIcons;
 
 const StudentForm = ({ student, onClose }) => {
-  const { addStudent, updateStudent, subjects, getTutors } = useData();
+  const { addStudent, updateStudent, subjects, getTutors, getParents, getCurrencySymbol } = useData();
   const [formData, setFormData] = useState({
     parentName: '',
+    parentUsername: '',
     studentName: '',
     grade: '',
     subject: '',
@@ -22,6 +23,7 @@ const StudentForm = ({ student, onClose }) => {
 
   const grades = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', 'Undergrad'];
   const tutors = getTutors();
+  const parents = getParents();
   const statuses = ['Active', 'Trial', 'Idle', 'Hold', 'Finished'];
 
   useEffect(() => {
@@ -43,6 +45,17 @@ const StudentForm = ({ student, onClose }) => {
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleParentChange = (e) => {
+    const selectedParentId = e.target.value;
+    const selectedParent = parents.find(p => p.id === selectedParentId);
+    
+    setFormData(prev => ({
+      ...prev,
+      parentName: selectedParent ? selectedParent.name : '',
+      parentUsername: selectedParent ? selectedParent.username : ''
+    }));
   };
 
   return (
@@ -69,6 +82,27 @@ const StudentForm = ({ student, onClose }) => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
+                Assign Parent Account
+              </label>
+              <select
+                onChange={handleParentChange}
+                value={parents.find(p => p.username === formData.parentUsername)?.id || ''}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
+              >
+                <option value="">Select Parent (Optional)</option>
+                {parents.map(parent => (
+                  <option key={parent.id} value={parent.id}>
+                    {parent.name} (@{parent.username})
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                Assign a parent account to give them access to view this student's progress
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
                 Parent Name *
               </label>
               <input
@@ -78,6 +112,7 @@ const StudentForm = ({ student, onClose }) => {
                 onChange={handleChange}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 required
+                placeholder="Enter parent's full name"
               />
             </div>
 
@@ -171,7 +206,7 @@ const StudentForm = ({ student, onClose }) => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Fee per Session ($)
+                Fee per Session ({getCurrencySymbol()})
               </label>
               <input
                 type="number"
@@ -181,6 +216,7 @@ const StudentForm = ({ student, onClose }) => {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none"
                 min="0"
                 step="0.01"
+                placeholder="0.00"
               />
             </div>
 

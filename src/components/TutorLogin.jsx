@@ -7,7 +7,10 @@ import * as FiIcons from 'react-icons/fi';
 const { FiUser, FiLock, FiLogIn, FiBookOpen } = FiIcons;
 
 const TutorLogin = () => {
-  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [credentials, setCredentials] = useState({
+    username: '',
+    password: ''
+  });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { login } = useAuth();
@@ -37,8 +40,18 @@ const TutorLogin = () => {
           <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
             <SafeIcon icon={FiBookOpen} className="text-2xl text-blue-600" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-800 mb-2">Tutor Management System</h1>
+          <h1 className="text-2xl font-bold text-gray-800 mb-2">DGTutor</h1>
           <p className="text-gray-600">Sign in to your account</p>
+        </div>
+
+        {/* Demo Credentials */}
+        <div className="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
+          <h3 className="text-sm font-medium text-blue-800 mb-2">Demo Credentials:</h3>
+          <div className="text-xs text-blue-700 space-y-1">
+            <div><strong>Admin:</strong> admin@gmail.com / 1234</div>
+            <div><strong>Tutor:</strong> wazid / tutor123</div>
+            <div><strong>Parent:</strong> johnsmith / parent123</div>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -97,15 +110,6 @@ const TutorLogin = () => {
             {loading ? 'Signing in...' : 'Sign In'}
           </motion.button>
         </form>
-
-        <div className="mt-8 p-4 bg-gray-50 rounded-lg">
-          <h3 className="font-medium text-gray-800 mb-2">Demo Credentials:</h3>
-          <div className="text-sm text-gray-600 space-y-1">
-            <p><strong>Admin:</strong> admin / admin123</p>
-            <p><strong>Tutors:</strong> wazid / tutor123</p>
-            <p><strong>Tutors:</strong> rahman / tutor123</p>
-          </div>
-        </div>
       </motion.div>
     </div>
   );

@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import supabase from '../lib/supabase';
 
 const AuthContext = createContext();
 
@@ -13,41 +14,131 @@ export const useAuth = () => {
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [userType, setUserType] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const savedUser = localStorage.getItem('currentUser');
     const savedUserType = localStorage.getItem('userType');
+    
     if (savedUser && savedUserType) {
       setUser(JSON.parse(savedUser));
       setUserType(savedUserType);
     }
+    setLoading(false);
   }, []);
 
-  const login = (username, password) => {
-    // Admin login
-    if (username === 'admin' && password === 'admin123') {
-      const adminUser = { username: 'admin', name: 'Administrator' };
-      setUser(adminUser);
-      setUserType('admin');
-      localStorage.setItem('currentUser', JSON.stringify(adminUser));
-      localStorage.setItem('userType', 'admin');
-      return { success: true, userType: 'admin' };
-    }
-
-    // Tutor login
-    const tutors = ['Wazid', 'Rahman'];
-    const tutorName = tutors.find(t => t.toLowerCase() === username.toLowerCase());
+  const login = async (username, password) => {
+    console.log('Attempting login with:', username);
     
-    if (tutorName && password === 'tutor123') {
-      const tutorUser = { username: tutorName.toLowerCase(), name: tutorName };
-      setUser(tutorUser);
-      setUserType('tutor');
-      localStorage.setItem('currentUser', JSON.stringify(tutorUser));
-      localStorage.setItem('userType', 'tutor');
-      return { success: true, userType: 'tutor' };
+    try {
+      // Try to authenticate with Supabase first
+      const { data, error } = await supabase
+        .from('users_dgtutor_2024')
+        .select('*')
+        .eq('username', username.toLowerCase())
+        .eq('status', 'active')
+        .single();
+
+      if (data && data.password_hash === password) {
+        const userSession = {
+          id: data.id,
+          username: data.username,
+          name: data.name,
+          role: data.role,
+          email: data.email
+        };
+
+        setUser(userSession);
+        setUserType(data.role);
+        localStorage.setItem('currentUser', JSON.stringify(userSession));
+        localStorage.setItem('userType', data.role);
+
+        console.log('Login successful:', data.name);
+        return {
+          success: true,
+          userType: data.role,
+          message: `Welcome back, ${data.name}!`
+        };
+      }
+
+      // Fallback to hardcoded users if database login fails
+      return fallbackLogin(username, password);
+
+    } catch (error) {
+      console.error('Database login error:', error);
+      return fallbackLogin(username, password);
+    }
+  };
+
+  const fallbackLogin = (username, password) => {
+    console.log('Using fallback login for:', username);
+    
+    const defaultUsers = [
+      { 
+        id: 'admin-1', 
+        name: 'Administrator', 
+        username: 'admin@gmail.com', 
+        password: '1234', 
+        role: 'admin', 
+        status: 'active' 
+      },
+      { 
+        id: 'tutor-1', 
+        name: 'Wazid', 
+        username: 'wazid', 
+        password: 'tutor123', 
+        role: 'tutor', 
+        status: 'active' 
+      },
+      { 
+        id: 'tutor-2', 
+        name: 'Rahman', 
+        username: 'rahman', 
+        password: 'tutor123', 
+        role: 'tutor', 
+        status: 'active' 
+      },
+      { 
+        id: 'parent-1', 
+        name: 'John Smith', 
+        username: 'johnsmith', 
+        password: 'parent123', 
+        role: 'parent', 
+        status: 'active' 
+      }
+    ];
+
+    const foundUser = defaultUsers.find(u => 
+      u.username.toLowerCase() === username.toLowerCase() && 
+      u.status === 'active'
+    );
+
+    if (foundUser && foundUser.password === password) {
+      const userSession = {
+        id: foundUser.id,
+        username: foundUser.username,
+        name: foundUser.name,
+        role: foundUser.role
+      };
+
+      setUser(userSession);
+      setUserType(foundUser.role);
+      localStorage.setItem('currentUser', JSON.stringify(userSession));
+      localStorage.setItem('userType', foundUser.role);
+
+      console.log('Fallback login successful:', foundUser.name);
+      return {
+        success: true,
+        userType: foundUser.role,
+        message: `Welcome back, ${foundUser.name}!`
+      };
     }
 
-    return { success: false, message: 'Invalid credentials' };
+    console.log('Login failed for:', username);
+    return {
+      success: false,
+      message: 'Invalid username or password. Please check your credentials.'
+    };
   };
 
   const logout = () => {
@@ -58,7 +149,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, userType, login, logout }}>
+    <AuthContext.Provider value={{ user, userType, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

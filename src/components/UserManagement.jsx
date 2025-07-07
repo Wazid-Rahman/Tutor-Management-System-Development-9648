@@ -6,13 +6,14 @@ import UserForm from './UserForm';
 import SafeIcon from '../common/SafeIcon';
 import * as FiIcons from 'react-icons/fi';
 
-const { FiPlus, FiEdit, FiTrash2, FiUser, FiShield, FiUsers } = FiIcons;
+const { FiPlus, FiEdit, FiTrash2, FiUser, FiShield, FiUsers, FiCopy, FiEye, FiEyeOff } = FiIcons;
 
 const UserManagement = () => {
   const { user } = useAuth();
   const { users, deleteUser } = useData();
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  const [showPasswords, setShowPasswords] = useState({});
 
   const handleEditUser = (userToEdit) => {
     setEditingUser(userToEdit);
@@ -29,16 +30,32 @@ const UserManagement = () => {
       alert("You cannot delete your own account!");
       return;
     }
-    
     if (window.confirm('Are you sure you want to delete this user?')) {
       deleteUser(userId);
     }
+  };
+
+  const handleCopyCredentials = (userItem) => {
+    const credentials = `Username: ${userItem.username}\nPassword: ${userItem.password || 'Not visible'}`;
+    navigator.clipboard.writeText(credentials).then(() => {
+      alert('Credentials copied to clipboard!');
+    }).catch(() => {
+      alert('Failed to copy credentials');
+    });
+  };
+
+  const togglePasswordVisibility = (userId) => {
+    setShowPasswords(prev => ({
+      ...prev,
+      [userId]: !prev[userId]
+    }));
   };
 
   const getRoleColor = (role) => {
     switch (role) {
       case 'admin': return 'bg-red-100 text-red-800';
       case 'tutor': return 'bg-blue-100 text-blue-800';
+      case 'parent': return 'bg-green-100 text-green-800';
       case 'viewer': return 'bg-gray-100 text-gray-800';
       default: return 'bg-gray-100 text-gray-800';
     }
@@ -48,6 +65,7 @@ const UserManagement = () => {
     switch (role) {
       case 'admin': return FiShield;
       case 'tutor': return FiUser;
+      case 'parent': return FiUser;
       case 'viewer': return FiUsers;
       default: return FiUser;
     }
@@ -57,13 +75,14 @@ const UserManagement = () => {
     totalUsers: users.length,
     admins: users.filter(u => u.role === 'admin').length,
     tutors: users.filter(u => u.role === 'tutor').length,
+    parents: users.filter(u => u.role === 'parent').length,
     viewers: users.filter(u => u.role === 'viewer').length,
   };
 
   return (
     <div className="space-y-6">
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-5 gap-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
@@ -122,6 +141,23 @@ const UserManagement = () => {
         >
           <div className="flex items-center justify-between">
             <div>
+              <p className="text-sm font-medium text-gray-600">Parents</p>
+              <p className="text-2xl font-bold text-green-600">{stats.parents}</p>
+            </div>
+            <div className="bg-green-100 p-3 rounded-full">
+              <SafeIcon icon={FiUser} className="text-lg text-green-600" />
+            </div>
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4 }}
+          className="bg-white rounded-xl shadow-sm p-6 border border-gray-200"
+        >
+          <div className="flex items-center justify-between">
+            <div>
               <p className="text-sm font-medium text-gray-600">Viewers</p>
               <p className="text-2xl font-bold text-gray-600">{stats.viewers}</p>
             </div>
@@ -156,6 +192,9 @@ const UserManagement = () => {
                   User
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                  Credentials
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Role
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
@@ -181,10 +220,7 @@ const UserManagement = () => {
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
                       <div className="bg-gray-100 p-2 rounded-full mr-3">
-                        <SafeIcon 
-                          icon={getRoleIcon(userItem.role)} 
-                          className="text-lg text-gray-600" 
-                        />
+                        <SafeIcon icon={getRoleIcon(userItem.role)} className="text-lg text-gray-600" />
                       </div>
                       <div>
                         <div className="text-sm font-medium text-gray-900">
@@ -204,11 +240,45 @@ const UserManagement = () => {
                       </div>
                     </div>
                   </td>
+
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">Username:</span>
+                        <code className="text-xs bg-gray-100 px-2 py-1 rounded">{userItem.username}</code>
+                      </div>
+                      {userItem.password && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">Password:</span>
+                          <code className="text-xs bg-gray-100 px-2 py-1 rounded">
+                            {showPasswords[userItem.id] ? userItem.password : '••••••••'}
+                          </code>
+                          <button
+                            onClick={() => togglePasswordVisibility(userItem.id)}
+                            className="text-gray-400 hover:text-gray-600 p-1"
+                            title={showPasswords[userItem.id] ? 'Hide password' : 'Show password'}
+                          >
+                            <SafeIcon icon={showPasswords[userItem.id] ? FiEyeOff : FiEye} className="text-xs" />
+                          </button>
+                        </div>
+                      )}
+                      <button
+                        onClick={() => handleCopyCredentials(userItem)}
+                        className="flex items-center gap-1 text-xs text-blue-600 hover:text-blue-800"
+                        title="Copy credentials"
+                      >
+                        <SafeIcon icon={FiCopy} className="text-xs" />
+                        Copy
+                      </button>
+                    </div>
+                  </td>
+
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getRoleColor(userItem.role)}`}>
                       {userItem.role?.charAt(0).toUpperCase() + userItem.role?.slice(1)}
                     </span>
                   </td>
+
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                       userItem.status === 'active' 
@@ -218,12 +288,11 @@ const UserManagement = () => {
                       {userItem.status?.charAt(0).toUpperCase() + userItem.status?.slice(1)}
                     </span>
                   </td>
+
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                    {userItem.createdAt 
-                      ? new Date(userItem.createdAt).toLocaleDateString()
-                      : 'N/A'
-                    }
+                    {userItem.createdAt ? new Date(userItem.createdAt).toLocaleDateString() : 'N/A'}
                   </td>
+
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                     <div className="flex items-center gap-2">
                       <button
@@ -253,7 +322,7 @@ const UserManagement = () => {
 
       {/* Add/Edit User Modal */}
       {showAddForm && (
-        <UserForm
+        <UserForm 
           user={editingUser}
           onClose={handleCloseForm}
         />

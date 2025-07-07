@@ -1,21 +1,36 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { HashRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
 import AdminDashboard from './components/AdminDashboard';
 import TutorLogin from './components/TutorLogin';
 import TutorDashboard from './components/TutorDashboard';
+import ParentDashboard from './components/ParentDashboard';
+import LoadingSpinner from './components/LoadingSpinner';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { DataProvider } from './context/DataContext';
+import { DataProvider, useData } from './context/DataContext';
 
 function AppContent() {
-  const { user, userType } = useAuth();
+  const { user, userType, loading: authLoading } = useAuth();
+  const { loading: dataLoading } = useData();
+
+  const getRedirectPath = () => {
+    switch (userType) {
+      case 'admin': return '/admin';
+      case 'tutor': return '/tutor';
+      case 'parent': return '/parent';
+      default: return '/login';
+    }
+  };
+
+  if (authLoading || dataLoading) {
+    return <LoadingSpinner message="Initializing DGTutor..." />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       <Routes>
         <Route 
           path="/login" 
-          element={!user ? <TutorLogin /> : <Navigate to={userType === 'admin' ? '/admin' : '/tutor'} />} 
+          element={!user ? <TutorLogin /> : <Navigate to={getRedirectPath()} />} 
         />
         <Route 
           path="/admin" 
@@ -26,8 +41,12 @@ function AppContent() {
           element={user && userType === 'tutor' ? <TutorDashboard /> : <Navigate to="/login" />} 
         />
         <Route 
+          path="/parent" 
+          element={user && userType === 'parent' ? <ParentDashboard /> : <Navigate to="/login" />} 
+        />
+        <Route 
           path="/" 
-          element={<Navigate to={user ? (userType === 'admin' ? '/admin' : '/tutor') : '/login'} />} 
+          element={<Navigate to={user ? getRedirectPath() : '/login'} />} 
         />
       </Routes>
     </div>
